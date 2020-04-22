@@ -1,0 +1,31 @@
+{% load my_filters %}
+<h1>Shopping</h1>
+<hr>
+<h3>Products</h3>
+<table>
+    <tr>
+        <th>Name</th>
+        <th>Price</th>
+    </tr>
+    {% for product in products %}
+        <form action="{% url 'product_management_app:add_to_cart' %}" method="post">
+            {% csrf_token %}
+            <input type="hidden" value="{{ product.pk }}" name="product_id">
+
+            <tr>
+                <td>{{ product.name }}</td>
+                {% with deal=product|get_deal:deals %}
+                        {% if deal %}
+                            <td>{{ product.price|sub_discount:deal.discount_persentage }}</td>
+                        {% else %}
+                            <td>{{ product.price }}</td>
+                        {% endif %}
+                {% endwith %}
+
+                <td><button type="submit">Buy</button></td>
+            </tr>
+        </form>
+    {% endfor %}
+
+</table>
+<hr>

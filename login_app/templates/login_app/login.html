@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+</head>
+<body>
+<h1>Login</h1>
+<hr>
+<form action="{% url 'login_app:login' %}" method="post">
+    {% csrf_token %}
+    <input type="text" placeholder="Username" name="username">
+    <input type="password" placeholder="Password" name="password">
+    <a href="{% url 'login_app:password_reset_request' %}">Forgot my password</a>
+    <button type="submit">Login</button>
+</form>
+<h1>{{ error }}</h1>
+</body>
+</html>

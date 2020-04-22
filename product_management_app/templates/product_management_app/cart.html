@@ -1,0 +1,25 @@
+{% load my_filters %}
+{% load mathfilters %}
+
+<h3>Cart</h3>
+<hr>
+<table>
+    <tr>
+        <th>Product name</th>
+        <th>Quantity</th>
+        <th>Price</th>
+    </tr>
+    {% for order_item in cart %}
+        <tr>
+            <td>{{ order_item.product.name }}</td>
+            <td>{{ order_item.quantity }}</td>
+            {% with deal=order_item.product|get_deal:deals %}
+                    {% if deal %}
+                        <td>{{ order_item|get_quantity_price_with_deal:deal.discount_persentage }}</td>
+                    {% else %}
+                        <td>{{ order_item.product.price|mul:order_item.quantity }}</td>
+                    {% endif %}
+            {% endwith %}
+        </tr>
+    {% endfor %}
+</table>

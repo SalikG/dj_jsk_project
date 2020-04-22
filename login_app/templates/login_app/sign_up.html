@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SignUp</title>
+</head>
+<body>
+<h1>Sign up</h1>
+<form action="{% url 'login_app:sign_up' %}" method="post">
+    <h3>{{ error }}</h3>
+
+    {% csrf_token %}
+    <input type="text" name="username" placeholder="Username">
+    <input type="email" placeholder="Email address" name="email_address">
+
+    <input type="text" name="password" placeholder="Password">
+    <input type="password" placeholder="Confirm password" name="confirm_password">
+    <p>{{ password_match_error }}</p>
+
+    <button type="submit">Sign up</button>
+</form>
+</body>
+</html>
