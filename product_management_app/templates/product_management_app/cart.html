@@ -11,15 +11,27 @@
     </tr>
     {% for order_item in cart %}
         <tr>
-            <td>{{ order_item.product.name }}</td>
-            <td>{{ order_item.quantity }}</td>
-            {% with deal=order_item.product|get_deal:deals %}
-                    {% if deal %}
-                        <td>{{ order_item|get_quantity_price_with_deal:deal.discount_persentage }}</td>
-                    {% else %}
-                        <td>{{ order_item.product.price|mul:order_item.quantity }}</td>
-                    {% endif %}
-            {% endwith %}
+            <form action="{% url 'product_management_app:sub_or_remove_order_item' %}" method="post">
+                {% csrf_token %}
+                <input type="hidden" name="product_id" value="{{ order_item.product.pk }}">
+                <td>{{ order_item.product.name }}</td>
+                <td>{{ order_item.quantity }}</td>
+                {% with deal=order_item.product|get_deal:deals %}
+                        {% if deal %}
+                            <td>{{ order_item|get_quantity_price_with_deal:deal.discount_persentage }}</td>
+                        {% else %}
+                            <td>{{ order_item.product.price|mul:order_item.quantity }}</td>
+                        {% endif %}
+                {% endwith %}
+                <td><input type="submit" name="_add_product" value="+"></td>
+                <td><input type="submit" name="_sub_product" value="-"></td>
+                <td><input type="submit" name="_remove_product" value="Remove" style="background: red"></td>
+
+            </form>
         </tr>
     {% endfor %}
+
 </table>
+    <hr>
+
+    <span><strong>SUM: </strong>{{ cart|get_price_sum_from_cart_and_deals:deals }}</span>
