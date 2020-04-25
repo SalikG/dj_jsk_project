@@ -30,9 +30,9 @@ def get_price_sum_from_cart_and_deals(value, arg):
     cart = value
     deals = arg
     result = 0
-    print(deals)
+    if cart is None:
+        return 0
     for order_item in cart:
-        print(order_item.product)
         one_product_price_sum = 0
         for deal in deals:
             if deal.product == order_item.product:

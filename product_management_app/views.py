@@ -1,22 +1,52 @@
-from django.http import HttpResponseRedirect, Http404
+from django.http import HttpResponseRedirect
 from django.shortcuts import render, reverse
 from django.contrib.auth.decorators import login_required
-from .models import Product, Order, Deal, OrderItem
+from .models import Product, Order, Deal, OrderItem, Storage, Stock
 from login_app.models import UserProfile
 from datetime import datetime
+import time
 from django.core import serializers
+
+
+# TODO test threads for cart=>stock_data reset
+async def test(cart_change_timestamp):
+    while True:
+        now = datetime.now().timestamp()
+        last_added_to_cart = cart_change_timestamp
+        test_result = now - last_added_to_cart
+        # print(after)
+        print(last_added_to_cart)
+        if test_result > 10:
+            print(test_result)
+        time.sleep(10)
 
 
 @login_required
 def index(request):
-    # Get all products but only first time
-    if 'products' in request.session:
-        products = [des_product.object for des_product in serializers.deserialize('json', request.session['products'])]
-    else:
-        products = Product.objects.filter().order_by('name')
-        request.session['products'] = serializers.serialize('json', products)
+    storages = Storage.objects.all()
+    context = {'storages': storages}
+    return render(request, "product_management_app/index.html", context)
 
-    # Get all deals but only first time
+
+@login_required
+def shop(request, storage):
+    # initialize chosen storage and verify selection
+    storage_object = None
+    if 'storage' not in request.session:
+        for storage_list_item in Storage.objects.all():
+            if storage == storage_list_item.name:
+                request.session['storage'] = serializers.serialize('json', [storage_list_item])
+                storage_object = storage_list_item
+
+        if storage_object is None:
+            return HttpResponseRedirect(reverse('product_management_app:select_storage'))
+    else:
+        storage_object = next(serializers.deserialize('json', request.session['storage']), None).object
+    # TODO CHANGED to do it every time. Get all products in stock by storage.name but only if not in session
+    products_in_stock = Stock.objects.filter(storage=storage_object)
+    request.session['products_in_stock'] = serializers.serialize('json', products_in_stock)
+
+    # Get all deals but only if not in session
     if 'deals' in request.session:
         deals = [des_deal.object for des_deal in serializers.deserialize('json', request.session['deals'])]
     else:
@@ -31,17 +61,17 @@ def index(request):
     else:
         cart = None
 
-    context = {'products': products,
+    context = {'products_in_stock': products_in_stock,
                'deals': deals,
                'cart': cart}
-    return render(request, "product_management_app/index.html", context)
+    return render(request, "product_management_app/shop.html", context)
 
 
 @login_required
 def add_product_to_cart(request):
     if 'product_id' not in request.POST:
         if 'product_id' not in request.session:
-            return HttpResponseRedirect(reverse('product_management_app:shopping'))
+            return HttpResponseRedirect(reverse('product_management_app:shop', kwargs={'storage': request.session['storage']}))
         # Get submitted product if in session
         else:
             product = Product.objects.get(pk=request.session['product_id'])
@@ -81,7 +111,15 @@ def add_product_to_cart(request):
                     cart_item.quantity += 1
         request.session['cart'] = serializers.serialize('json', cart)
 
-    return HttpResponseRedirect(reverse('product_management_app:shopping'))
+    stock_item = Stock.objects.get(product=product)
+    stock_item.quantity -= 1
+    stock_item.save()
+
+    # TODO Set cart_change_timestamp session
+    cart_change_timestamp = datetime.now().timestamp()
+    test(cart_change_timestamp)
+
+    return HttpResponseRedirect(reverse('product_management_app:shop', kwargs={'storage': request.session['storage']}))
 
 
 # Subtract product quantity from cart order_item or remove order_item from cart session
@@ -92,13 +130,21 @@ def sub_or_remove_order_item(request):
                       None)
     # If there is no posted order_item
     if order_item is None:
-        return HttpResponseRedirect(reverse('product_management_app:shopping'))
+        return HttpResponseRedirect(
+            reverse('product_management_app:shop', kwargs={'storage': request.session['storage']}))
 
     # Remove order_item from cart session
     if '_remove_product' in request.POST:
         cart.remove(order_item)
         request.session['cart'] = serializers.serialize('json', cart)
-        return HttpResponseRedirect(reverse('product_management_app:shopping'))
+
+        # Add to stock again
+        stock_item = Stock.objects.get(product=order_item.product)
+        stock_item.quantity += order_item.quantity
+        stock_item.save()
+
+        return HttpResponseRedirect(
+            reverse('product_management_app:shop', kwargs={'storage': request.session['storage']}))
 
     # Sub product from cart order_item in session
     if '_sub_product' in request.POST:
@@ -109,11 +155,19 @@ def sub_or_remove_order_item(request):
                 else:
                     list_item.quantity -= 1
                 request.session['cart'] = serializers.serialize('json', cart)
-                return HttpResponseRedirect(reverse('product_management_app:shopping'))
+
+                # Add to stock again
+                stock_item = Stock.objects.get(product=order_item.product)
+                stock_item.quantity += 1
+                stock_item.save()
+                return HttpResponseRedirect(
+                    reverse('product_management_app:shop', kwargs={'storage': request.session['storage']}))
 
     # Add product to cart order_item in session via add_to_cart View function
     if '_add_product' in request.POST:
         request.session['product_id'] = request.POST['product_id']
         return HttpResponseRedirect(reverse('product_management_app:add_to_cart'))
 
-    return HttpResponseRedirect(reverse('product_management_app:shopping'))
+    return HttpResponseRedirect(reverse('product_management_app:shop', kwargs={'storage': request.session['storage']}))
+
+# Confirm order

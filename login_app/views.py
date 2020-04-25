@@ -19,7 +19,7 @@ def login(request):
             dj_login(request, user_authenticated)
             user = User.objects.get(username=username)
             user_profile = UserProfile.objects.get(user=user)
-            return HttpResponseRedirect(reverse('product_management_app:shopping'))
+            return HttpResponseRedirect(reverse('product_management_app:select_storage'))
         else:
             context = {
                 'error': 'Bad username or password',

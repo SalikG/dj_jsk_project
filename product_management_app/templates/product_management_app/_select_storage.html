@@ -1,0 +1,4 @@
+
+{% for storage_list_item in storages %}
+    <a href="{% url 'product_management_app:shop' storage=storage_list_item %}">{{ storage_list_item.name }}</a>
+{% endfor %}

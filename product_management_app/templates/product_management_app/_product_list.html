@@ -6,22 +6,24 @@
     <tr>
         <th>Name</th>
         <th>Price</th>
+        <th>In stock</th>
     </tr>
-    {% for product in products %}
+    {% for stock_item in products_in_stock %}
         <form action="{% url 'product_management_app:add_to_cart' %}" method="post">
             {% csrf_token %}
-            <input type="hidden" value="{{ product.pk }}" name="product_id">
+            <input type="hidden" value="{{ stock_item.product.pk }}" name="product_id">
 
             <tr>
-                <td>{{ product.name }}</td>
-                {% with deal=product|get_deal:deals %}
+                <td>{{ stock_item.product.name }}</td>
+                {% with deal=stock_item.product|get_deal:deals %}
                         {% if deal %}
-                            <td>{{ product.price|sub_discount:deal.discount_persentage }}</td>
+                            <td>{{ stock_item.product.price|sub_discount:deal.discount_persentage }}</td>
                         {% else %}
-                            <td>{{ product.price }}</td>
+                            <td>{{ stock_item.product.price }}</td>
                         {% endif %}
                 {% endwith %}
 
+                <td>{{ stock_item.quantity }}</td>
                 <td><button type="submit">Buy</button></td>
             </tr>
         </form>
